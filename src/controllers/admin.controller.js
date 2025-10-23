@@ -61,7 +61,14 @@ exports.getChauffeursPending = async (req, res, next) => {
 
 exports.validateChauffeur = async (req, res, next) => {
   try {
-    const { decision } = req.body;
+    const { decision } = req.body || {};
+
+    if (!decision || !['VALIDE', 'REJETE'].includes(decision)) {
+      return res.status(400).json({
+        success: false,
+        message: "Champ 'decision' requis et doit être 'VALIDE' ou 'REJETE'"
+      });
+    }
 
     const chauffeur = await User.findById(req.params.id);
     

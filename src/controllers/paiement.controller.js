@@ -3,7 +3,14 @@ const Reservation = require('../models/Reservation');
 
 exports.traiterPaiement = async (req, res, next) => {
   try {
-    const { reservationId, methode, detailsMethode } = req.body;
+    const { reservationId, methode, detailsMethode } = req.body || {};
+
+    if (!reservationId || !methode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champs requis: reservationId, methode'
+      });
+    }
 
     const reservation = await Reservation.findById(reservationId);
     

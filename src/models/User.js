@@ -78,6 +78,14 @@ const userSchema = new mongoose.Schema({
       return this.typeUtilisateur === 'CHAUFFEUR' ? 'EN_ATTENTE' : 'VALIDE';
     }
   },
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpire: {
+    type: Date,
+    select: false
+  },
   vehicule: {
     typeVehicule: { 
       type: String,

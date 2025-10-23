@@ -39,7 +39,4 @@ const paiementSchema = new mongoose.Schema({
   montantRembourse: Number
 }, { timestamps: true });
 
-paiementSchema.index({ reservation: 1 });
-paiementSchema.index({ ref: 1 });
-
 module.exports = mongoose.model('Paiement', paiementSchema);

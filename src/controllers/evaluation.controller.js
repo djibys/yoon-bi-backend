@@ -3,7 +3,14 @@ const Reservation = require('../models/Reservation');
 
 exports.createEvaluation = async (req, res, next) => {
   try {
-    const { reservationId, note, commentaire, criteres } = req.body;
+    const { reservationId, note, commentaire, criteres } = req.body || {};
+
+    if (!reservationId || note === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champs requis: reservationId, note'
+      });
+    }
 
     if (req.user.typeUtilisateur !== 'CLIENT') {
       return res.status(403).json({ 

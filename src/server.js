@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/database');
 const { errorHandler } = require('./middleware/errorHandler');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 connectDB();
 
@@ -13,6 +15,36 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Yoon-Bi API',
+      version: '1.0.0',
+      description: 'Documentation de l\'API Yoon-Bi',
+    },
+    servers: [
+      { url: `http://localhost:${process.env.PORT || 3000}` },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+  },
+  apis: [
+    './src/routes/*.js',
+    './src/routes/**/*.js',
+  ],
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/trajets', require('./routes/trajet.routes'));
@@ -34,6 +66,11 @@ app.get('/', (req, res) => {
       admin: '/api/admin'
     }
   });
+});
+
+// 404 handler JSON
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, message: 'Route non trouvée' });
 });
 
 app.use(errorHandler);

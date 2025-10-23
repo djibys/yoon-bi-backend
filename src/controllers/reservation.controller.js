@@ -3,7 +3,14 @@ const Trajet = require('../models/Trajet');
 
 exports.createReservation = async (req, res, next) => {
   try {
-    const { trajetId, nbPlaces, adresseDepart, adresseArrivee } = req.body;
+    const { trajetId, nbPlaces, adresseDepart, adresseArrivee } = req.body || {};
+
+    if (!trajetId || !nbPlaces || !adresseDepart || !adresseArrivee) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champs requis: trajetId, nbPlaces, adresseDepart, adresseArrivee'
+      });
+    }
 
     if (req.user.typeUtilisateur !== 'CLIENT') {
       return res.status(403).json({ 

@@ -3,7 +3,14 @@ const Reservation = require('../models/Reservation');
 
 exports.createTrajet = async (req, res, next) => {
   try {
-    const { depart, arrivee, dateDebut, prixParPlace, nbPlacesDisponibles } = req.body;
+    const { depart, arrivee, dateDebut, prixParPlace, nbPlacesDisponibles } = req.body || {};
+
+    if (!depart || !arrivee || !dateDebut || (!Number.isFinite(prixParPlace) && prixParPlace !== 0) || !nbPlacesDisponibles) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champs requis: depart, arrivee, dateDebut, prixParPlace, nbPlacesDisponibles'
+      });
+    }
 
     if (req.user.typeUtilisateur !== 'CHAUFFEUR') {
       return res.status(403).json({ 
@@ -146,8 +153,22 @@ exports.startTrajet = async (req, res, next) => {
 
 exports.addPosition = async (req, res, next) => {
   try {
-    const { latitude, longitude } = req.body;
-    
+    const { latitude, longitude } = req.body || {};
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champs requis: latitude, longitude'
+      });
+    }
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude et longitude doivent être des nombres'
+      });
+    }
+
     const trajet = await Trajet.findById(req.params.id);
     
     if (!trajet) {
@@ -222,6 +243,52 @@ exports.endTrajet = async (req, res, next) => {
       success: true,
       message: 'Trajet terminé',
       trajet
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteTrajet = async (req, res, next) => {
+  try {
+    const trajet = await Trajet.findById(req.params.id);
+
+    if (!trajet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Trajet non trouvé'
+      });
+    }
+
+    const isOwner = trajet.chauffeur.toString() === req.user._id.toString();
+    const isAdmin = req.user.typeUtilisateur === 'ADMIN';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé'
+      });
+    }
+
+    if (trajet.statut !== 'DISPONIBLE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Seuls les trajets DISPONIBLE peuvent être supprimés'
+      });
+    }
+
+    const reservationsCount = await Reservation.countDocuments({ trajet: trajet._id });
+    if (reservationsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Impossible de supprimer un trajet ayant des réservations'
+      });
+    }
+
+    await trajet.deleteOne();
+
+    res.json({
+      success: true,
+      message: 'Trajet supprimé avec succès'
     });
   } catch (error) {
     next(error);
