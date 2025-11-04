@@ -88,11 +88,18 @@ const userSchema = new mongoose.Schema({
   },
   vehicule: {
     typeVehicule: { 
-      type: String,
-      enum: ['BERLINE', 'SUV', 'MINIBUS', 'UTILITAIRE']
+      type: String
+    },
+    typeClasse: {
+      type: String
     },
     couleur: String,
     nbPlaces: { 
+      type: Number,
+      min: 1,
+      max: 9
+    },
+    nombrePlaces: {
       type: Number,
       min: 1,
       max: 9
@@ -102,7 +109,14 @@ const userSchema = new mongoose.Schema({
       uppercase: true
     },
     marque: String,
-    modele: String
+    modele: String,
+    assurance: {
+      type: String
+    },
+    photo: {
+      type: String,
+      default: null
+    }
   },
   actif: { 
     type: Boolean, 

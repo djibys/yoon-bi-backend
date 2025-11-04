@@ -42,6 +42,65 @@ exports.getStatistics = async (req, res, next) => {
   }
 };
 
+exports.listUsers = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const search = (req.query.search || '').toString().trim();
+    const type = (req.query.type || '').toString().trim().toUpperCase();
+
+    const filter = {};
+    if (type && ['ADMIN','CLIENT','CHAUFFEUR'].includes(type)) {
+      filter.typeUtilisateur = type;
+    }
+    if (search) {
+      filter.$or = [
+        { prenom: new RegExp(search, 'i') },
+        { nom: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') },
+        { tel: new RegExp(search, 'i') },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+      User.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, items, total, page, totalPages: Math.ceil(total / limit) || 1 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.blockUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+    user.actif = false;
+    await user.save();
+    res.json({ success: true, message: 'Utilisateur bloqué', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.unblockUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+    user.actif = true;
+    await user.save();
+    res.json({ success: true, message: 'Utilisateur débloqué', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getChauffeursPending = async (req, res, next) => {
   try {
     const chauffeurs = await User.find({

@@ -10,7 +10,32 @@ const generateToken = (id) => {
 
 exports.register = async (req, res, next) => {
   try {
-    const { prenom, nom, email, tel, motDePasse, typeUtilisateur, ...rest } = req.body;
+    // Normalisation des champs avec aliases (compatibilité mobile)
+    const normalizedBody = { ...req.body };
+    
+    // Alias tel/telephone
+    if (normalizedBody.telephone && !normalizedBody.tel) {
+      normalizedBody.tel = normalizedBody.telephone;
+    }
+    
+    // Alias motDePasse/password
+    if (normalizedBody.password && !normalizedBody.motDePasse) {
+      normalizedBody.motDePasse = normalizedBody.password;
+    }
+    
+    // Normalisation du véhicule si présent
+    if (normalizedBody.vehicule) {
+      // Alias nombrePlaces/nbPlaces
+      if (normalizedBody.vehicule.nombrePlaces && !normalizedBody.vehicule.nbPlaces) {
+        normalizedBody.vehicule.nbPlaces = normalizedBody.vehicule.nombrePlaces;
+      }
+      // Alias typeClasse/typeVehicule
+      if (normalizedBody.vehicule.typeClasse && !normalizedBody.vehicule.typeVehicule) {
+        normalizedBody.vehicule.typeVehicule = normalizedBody.vehicule.typeClasse;
+      }
+    }
+
+    const { prenom, nom, email, tel, motDePasse, typeUtilisateur, ...rest } = normalizedBody;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -41,7 +66,9 @@ exports.register = async (req, res, next) => {
         prenom: user.prenom,
         nom: user.nom,
         email: user.email,
-        typeUtilisateur: user.typeUtilisateur
+        tel: user.tel,
+        typeUtilisateur: user.typeUtilisateur,
+        vehicule: user.vehicule
       }
     });
   } catch (error) {
@@ -51,16 +78,26 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, tel, motDePasse } = req.body || {};
+    // Normalisation des champs (compatibilité mobile)
+    const { 
+      email, 
+      tel, 
+      telephone,
+      motDePasse, 
+      password 
+    } = req.body || {};
+    
+    const finalTel = tel || telephone;
+    const finalPassword = motDePasse || password;
 
-    if ((!email && !tel) || !motDePasse) {
+    if ((!email && !finalTel) || !finalPassword) {
       return res.status(400).json({ 
         success: false,
         message: 'Identifiant requis (email ou téléphone) et mot de passe requis' 
       });
     }
 
-    const query = email ? { email } : { tel };
+    const query = email ? { email } : { tel: finalTel };
     const user = await User.findOne(query).select('+motDePasse');
     
     if (!user) {
@@ -70,7 +107,7 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const isMatch = await user.comparePassword(motDePasse);
+    const isMatch = await user.comparePassword(finalPassword);
     
     if (!isMatch) {
       return res.status(401).json({ 
@@ -374,6 +411,87 @@ exports.adminUnblockChauffeur = async (req, res, next) => {
     user.actif = true;
     await user.save();
     return res.json({ success: true, message: 'Chauffeur débloqué', user: user.toJSON() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload photo de profil
+exports.uploadProfilePhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier fourni'
+      });
+    }
+
+    const userId = req.user.id;
+    const photoUrl = `/uploads/profiles/${req.file.filename}`;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+
+    user.photo = photoUrl;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Photo de profil mise à jour',
+      photo: photoUrl,
+      user: user.toJSON()
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload photo de véhicule (pour chauffeurs)
+exports.uploadVehiclePhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier fourni'
+      });
+    }
+
+    const userId = req.user.id;
+    const photoUrl = `/uploads/vehicles/${req.file.filename}`;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+
+    if (user.typeUtilisateur !== 'CHAUFFEUR') {
+      return res.status(403).json({
+        success: false,
+        message: 'Seuls les chauffeurs peuvent uploader une photo de véhicule'
+      });
+    }
+
+    if (!user.vehicule) {
+      user.vehicule = {};
+    }
+    
+    user.vehicule.photo = photoUrl;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Photo de véhicule mise à jour',
+      photo: photoUrl,
+      user: user.toJSON()
+    });
   } catch (error) {
     next(error);
   }

@@ -69,6 +69,40 @@ exports.createReservation = async (req, res, next) => {
   }
 };
 
+// Mettre à jour l'état d'une réservation (validation par chauffeur)
+exports.updateReservationEtat = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { etat } = req.body || {};
+
+    const reservation = await Reservation.findById(id).populate('trajet');
+    if (!reservation) {
+      return res.status(404).json({ success: false, message: 'Réservation non trouvée' });
+    }
+
+    // Autorisé: ADMIN ou chauffeur propriétaire du trajet
+    const isAdmin = req.user.typeUtilisateur === 'ADMIN';
+    const isOwnerChauffeur = reservation.trajet && reservation.trajet.chauffeur && reservation.trajet.chauffeur.toString() === req.user._id.toString();
+    if (!isAdmin && !isOwnerChauffeur) {
+      return res.status(403).json({ success: false, message: 'Non autorisé' });
+    }
+
+    // Etats autorisés pour cet endpoint (validation)
+    const allowed = ['VALIDEE', 'CONFIRMEE', 'ANNULEE', 'TERMINEE'];
+    const newEtat = String(etat || '').toUpperCase();
+    if (!allowed.includes(newEtat)) {
+      return res.status(400).json({ success: false, message: `Etat invalide. Autorisés: ${allowed.join(', ')}` });
+    }
+
+    reservation.etat = newEtat;
+    await reservation.save();
+
+    res.json({ success: true, message: 'Réservation mise à jour', reservation });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getMesReservations = async (req, res, next) => {
   try {
     const reservations = await Reservation.find({ client: req.user._id })
@@ -99,7 +133,9 @@ exports.getReservationsTrajet = async (req, res, next) => {
       });
     }
 
-    if (trajet.chauffeur.toString() !== req.user._id.toString()) {
+    const isAdmin = req.user.typeUtilisateur === 'ADMIN';
+    const isOwnerChauffeur = trajet.chauffeur.toString() === req.user._id.toString();
+    if (!isAdmin && !isOwnerChauffeur) {
       return res.status(403).json({ 
         success: false,
         message: 'Non autorisé' 

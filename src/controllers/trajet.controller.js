@@ -50,20 +50,56 @@ exports.createTrajet = async (req, res, next) => {
 
 exports.getTrajets = async (req, res, next) => {
   try {
-    const { depart, arrivee, date, places } = req.query;
+    const { depart, arrivee, date, places, all } = req.query;
     
-    let query = { 
-      statut: 'DISPONIBLE', 
-      nbPlacesDisponibles: { $gt: 0 },
-      dateDebut: { $gte: new Date() }
-    };
-    
-    if (depart) {
-      query.depart = new RegExp(depart, 'i');
+    let query = {};
+    const onlyAvailable = String(all).toLowerCase() !== 'true';
+    if (onlyAvailable) {
+      // Option B: ne pas filtrer sur dateDebut future
+      // Afficher tous les trajets EN_COURS ou DISPONIBLE avec des places > 0
+      query.$and = [
+        { nbPlacesDisponibles: { $gt: 0 } },
+        { $or: [ { statut: 'EN_COURS' }, { statut: 'DISPONIBLE' } ] }
+      ];
     }
     
+    // Construire des clés de recherche tolérantes (insensible aux accents)
+    const escapeRegex = (s = '') => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const diacritics = {
+      a: '[aàáâäãåæ]',
+      c: '[cç]',
+      e: '[eèéêë]',
+      i: '[iìíîï]',
+      o: '[oòóôöõœ]',
+      u: '[uùúûü]',
+      y: '[yýÿ]',
+      n: '[nñ]',
+      s: '[sß]'
+    };
+    const toDiacriticPattern = (s = '') => {
+      return escapeRegex(String(s)).replace(/[aceiouns]/gi, (ch) => {
+        const lower = ch.toLowerCase();
+        const group = diacritics[lower];
+        if (!group) return ch;
+        return ch === lower ? group : group.replace('[', '[A' + group.slice(2));
+      });
+    };
+    const extractKey = (val = '') => {
+      const raw = String(val);
+      // Couper sur virgule, tiret court et tiret long (en dash)
+      const firstPart = raw.split(/[，,–-]/)[0].trim();
+      // Prendre le premier mot significatif (avant espaces multiples)
+      const main = firstPart.split(/\s+/)[0].trim();
+      return main;
+    };
+    if (depart) {
+      const depMain = extractKey(depart);
+      if (depMain) query.depart = new RegExp(toDiacriticPattern(depMain), 'i');
+    }
+
     if (arrivee) {
-      query.arrivee = new RegExp(arrivee, 'i');
+      const arrMain = extractKey(arrivee);
+      if (arrMain) query.arrivee = new RegExp(toDiacriticPattern(arrMain), 'i');
     }
     
     if (date) {
@@ -79,6 +115,7 @@ exports.getTrajets = async (req, res, next) => {
     }
 
     const trajets = await Trajet.find(query)
+      .collation({ locale: 'fr', strength: 1 }) // insensible aux accents/casse
       .populate('chauffeur', 'prenom nom photo noteEval vehicule tel')
       .sort({ dateDebut: 1 });
 

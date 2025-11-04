@@ -5,7 +5,8 @@ const {
   createReservation, 
   getMesReservations, 
   getReservationsTrajet,
-  annulerReservation 
+  annulerReservation,
+  updateReservationEtat 
 } = require('../controllers/reservation.controller');
 
 /**
@@ -92,6 +93,42 @@ router.get('/mes-reservations', protect, authorize('CLIENT'), getMesReservations
  *         description: Non autorisé
  */
 router.get('/trajet/:trajetId', protect, authorize('CHAUFFEUR'), getReservationsTrajet);
+router.stack = router.stack.filter((l) => !(l.route && l.route.path === '/trajet/:trajetId' && l.route.methods.get));
+router.get('/trajet/:trajetId', protect, authorize('CHAUFFEUR', 'ADMIN'), getReservationsTrajet);
+/**
+ * @openapi
+ * /api/reservations/{id}:
+ *   patch:
+ *     summary: Mettre à jour l'état d'une réservation (CHAUFFEUR/ADMIN)
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               etat:
+ *                 type: string
+ *                 enum: [VALIDEE, CONFIRMEE, ANNULEE, TERMINEE]
+ *                 example: VALIDEE
+ *     responses:
+ *       200:
+ *         description: Réservation mise à jour
+ *       401:
+ *         description: Non autorisé
+ *       403:
+ *         description: Non autorisé
+ */
+router.patch('/:id', protect, authorize('CHAUFFEUR', 'ADMIN'), updateReservationEtat);
 /**
  * @openapi
  * /api/reservations/{id}:
