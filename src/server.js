@@ -88,9 +88,7 @@ const swaggerOptions = {
             modele: { type: 'string', example: 'Corolla' },
             immatriculation: { type: 'string', example: 'DK-1234-AB' },
             typeVehicule: { type: 'string', example: 'Berline' },
-            typeClasse: { type: 'string', example: 'Berline' },
             nombrePlaces: { type: 'integer', minimum: 1, maximum: 9, example: 4 },
-            nbPlaces: { type: 'integer', minimum: 1, maximum: 9, example: 4 },
             assurance: { type: 'string', example: '12345-ASSUR' },
             couleur: { type: 'string', example: 'Blanc' },
             photo: { type: 'string', example: '/uploads/vehicles/12345-67890.jpg' }

@@ -88,18 +88,10 @@ const { upload, handleUploadError } = require('../middleware/upload');
  *                   typeVehicule:
  *                     type: string
  *                     example: Berline
- *                   typeClasse:
- *                     type: string
- *                     description: Alias de 'typeVehicule'
- *                     example: Berline
  *                   nombrePlaces:
  *                     type: integer
  *                     minimum: 1
  *                     maximum: 9
- *                     example: 4
- *                   nbPlaces:
- *                     type: integer
- *                     description: Alias de 'nombrePlaces'
  *                     example: 4
  *                   assurance:
  *                     type: string

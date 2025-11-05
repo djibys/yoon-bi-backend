@@ -6,11 +6,23 @@ function mapReport(r) {
   const client = r.client || {};
   const chauffeur = r.chauffeur || {};
   const trajet = r.trajet || {};
+  
+  // Mapping des icônes selon le nouveau système de types
+  const typeIcons = {
+    'RETARD': '⏰',
+    'ANNULATION': '🚫',
+    'COMPORTEMENT': '⚠️',
+    'VEHICULE': '🚗',
+    'TRAJET_MODIFIE': '🔄',
+    'SECURITE': '🛡️',
+    'AUTRE': '📝'
+  };
+  
   return {
     id: String(r._id),
     date: r.createdAt ? new Date(r.createdAt).toLocaleString('fr-FR') : '',
     type: r.type,
-    typeIcon: r.type === 'Tarif abusif' ? '💰' : r.type === 'Comportement' ? '⚠️' : r.type === 'Retard' ? '⏰' : r.type === 'Véhicule' ? '🚗' : '❌',
+    typeIcon: typeIcons[r.type] || '📝',
     client: {
       name: [client.prenom, client.nom].filter(Boolean).join(' ') || 'Client',
       initials: [client.prenom, client.nom].filter(Boolean).map((s) => s[0]).join('').toUpperCase().slice(0, 2) || 'CL',
@@ -78,7 +90,7 @@ exports.listReports = async (req, res, next) => {
 exports.resolveReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const r = await Report.findByIdAndUpdate(id, { status: 'resolved' }, { new: true });
+    const r = await Report.findByIdAndUpdate(id, { status: 'RESOLU' }, { new: true });
     if (!r) return res.status(404).json({ success: false, message: 'Signalement introuvable' });
     res.json({ success: true, item: mapReport(r) });
   } catch (err) {
@@ -89,7 +101,7 @@ exports.resolveReport = async (req, res, next) => {
 exports.rejectReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const r = await Report.findByIdAndUpdate(id, { status: 'rejected' }, { new: true });
+    const r = await Report.findByIdAndUpdate(id, { status: 'REJETE' }, { new: true });
     if (!r) return res.status(404).json({ success: false, message: 'Signalement introuvable' });
     res.json({ success: true, item: mapReport(r) });
   } catch (err) {

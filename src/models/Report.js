@@ -11,19 +11,13 @@ const reportSchema = new mongoose.Schema(
         'VEHICULE',
         'TRAJET_MODIFIE',
         'SECURITE',
-        'AUTRE',
-        // Anciens types pour compatibilité
-        'Tarif abusif',
-        'Comportement',
-        'Retard',
-        'Véhicule',
-        'Annulation'
+        'AUTRE'
       ],
       required: true,
     },
     status: {
       type: String,
-      enum: ['EN_ATTENTE', 'EN_COURS', 'RESOLU', 'REJETE', 'pending', 'resolved', 'rejected'],
+      enum: ['EN_ATTENTE', 'EN_COURS', 'RESOLU', 'REJETE'],
       default: 'EN_ATTENTE',
       index: true,
     },

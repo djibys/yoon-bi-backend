@@ -90,19 +90,12 @@ const userSchema = new mongoose.Schema({
     typeVehicule: { 
       type: String
     },
-    typeClasse: {
-      type: String
-    },
     couleur: String,
-    nbPlaces: { 
-      type: Number,
-      min: 1,
-      max: 9
-    },
     nombrePlaces: {
       type: Number,
       min: 1,
-      max: 9
+      max: 9,
+      default: 4
     },
     immatriculation: { 
       type: String,

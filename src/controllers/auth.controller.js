@@ -25,13 +25,15 @@ exports.register = async (req, res, next) => {
     
     // Normalisation du véhicule si présent
     if (normalizedBody.vehicule) {
-      // Alias nombrePlaces/nbPlaces
-      if (normalizedBody.vehicule.nombrePlaces && !normalizedBody.vehicule.nbPlaces) {
-        normalizedBody.vehicule.nbPlaces = normalizedBody.vehicule.nombrePlaces;
+      // Alias nbPlaces -> nombrePlaces (standard)
+      if (normalizedBody.vehicule.nbPlaces && !normalizedBody.vehicule.nombrePlaces) {
+        normalizedBody.vehicule.nombrePlaces = normalizedBody.vehicule.nbPlaces;
+        delete normalizedBody.vehicule.nbPlaces;
       }
-      // Alias typeClasse/typeVehicule
+      // Alias typeClasse -> typeVehicule (standard)
       if (normalizedBody.vehicule.typeClasse && !normalizedBody.vehicule.typeVehicule) {
         normalizedBody.vehicule.typeVehicule = normalizedBody.vehicule.typeClasse;
+        delete normalizedBody.vehicule.typeClasse;
       }
     }
 
